@@ -1,6 +1,8 @@
 # DEERs
 Data Editing and Examination for Rotational Spectroscopy
 
+![Deers](https://github.com/user-attachments/assets/a68f70ea-15d8-4eb2-b3f5-8ebc33b47b38)
+
 ## Some info
     Name of the Program: DEERS
     Program Version : 1.0
