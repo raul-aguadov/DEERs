@@ -5,6 +5,8 @@ Extra definitions for DEERs scripts
 '''
 # Import zone -------------------------------------------------
 
+import sys
+import os
 import numpy as np
 import scipy
 from scipy.signal import find_peaks
@@ -14,15 +16,14 @@ import random
 #---------------------------------------------------------------
 
 # Pre-defined environment variables ----------------------------
-
-#cdms_db_path = ""
-#madex_db_path = ""
-#fragment_path = ""
+cdms_db_path = "E:/DEERs_v1/extras/CDMS_0-16GHz.sdb"
+madex_db_path = "E:/DEERs_v1/extras/MADEX.sdb"
+fragments_path = "E:/DEERs_v1/cacas.txt"
 #---------------------------------------------------------------
 
 # Pre-defined environment variables ----------------------------
 
-program_version = "v1.0 \n Welcome to the DEERs land!"
+program_version = "v1.0"
 #---------------------------------------------------------------
 
 
@@ -42,19 +43,18 @@ CAL_const = 4.184                   # 1 cal = 4.184 J
 # Program banner -----------------------------------------------
 
 def banner():
-    print("            ██████╗ ███████╗███████╗██████╗ ███████╗")
-    print("            ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝")
-    print("            ██║  ██║█████╗  █████╗  ██████╔╝███████╗")
-    print("            ██║  ██║██╔══╝  ██╔══╝  ██╔══██╗╚════██║")
-    print("            ██████╔╝███████╗███████╗██║  ██║███████║")
-    print("            ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝")
-    print("      Data Editing and Examination for Rotational Spectroscopy")
-    print("            Raul Aguado-Vesperinas             2024")
+    print("                        ██████╗ ███████╗███████╗██████╗ ███████╗")
+    print("                        ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝")
+    print("                        ██║  ██║█████╗  █████╗  ██████╔╝███████╗")
+    print("                        ██║  ██║██╔══╝  ██╔══╝  ██╔══██╗╚════██║")
+    print("                        ██████╔╝███████╗███████╗██║  ██║███████║")
+    print("                        ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝")
+    print("               Data Editing and Examination for Rotational Spectroscopy")
+    print("                        Raul Aguado-Vesperinas             2024")
     print()
     print()
-    print("===   ===   ===   ===   ===   ===   ===")
     print("Program version: " + program_version)
-    print("===   ===   ===   ===   ===   ===   ===")
+    print()
 
 #---------------------------------------------------------------
 
@@ -91,22 +91,25 @@ def calculate_step(x):
 
 
 # Peak finding script with console -----------------------------
+
 def peak_finder_script(file):
         spc_array = np.loadtxt(file, usecols=(0, 1))
-        sf = float(1.1) #[HAY QUE REVISARLO]
+        sf = float(1.25) #[HAY QUE REVISARLO]
         sf_opt = str()  #Defining an option used for allowing user to modify SF
 
         x = spc_array[:,0] #Array containing frequencies (X axis)
         y = spc_array[:,1] #Array containing intensities (Y axis)
 
         int_mean = np.mean(y)  #Mean of y-values. This is aproxinately y = 0
-        int_std = np.std(y)   #Standard deviation of intensities. This is aprox. the noise level.
+        int_std = np.std(y)   
 
         while True == True:
-                baseline = float((int_mean + int_std)* sf) #Obtaining baseline level by adding corrected noise level (corrected_std) to the mean of intensities (int_mean)
+                baseline = float(sf*int_mean) #Obtaining baseline level by adding corrected noise level (corrected_std) to the mean of intensities (int_mean)
 
-                print('Intesity mean: ' + str(int_mean))
-                print('Calculated baseline level: y = ' + str(baseline))
+                print()
+                print('INFO: Intesity mean: ' + str(int_mean))
+                print('INFO: Intensity standard deviation: ' + str(int_std))
+                print('INFO: Calculated baseline level: y = ' + str(baseline) + '\n')
         
                 peaks_filtered  = find_peaks(y, height = baseline)  #Using SciPy to locate peaks higher than baseline
 
@@ -127,31 +130,157 @@ def peak_finder_script(file):
 #---------------------------------------------------------------
 
 
-# Min-max normalization algorithm --------
+# Save a list of detected peaks into a txt file ----------------
 
-def mm_normalization(lista):
-    normalized_list = []
-    for i in lista:
-        x = (i-min(lista))/(max(lista)-min(lista))
-        normalized_list.append(x)
-    return(normalized_list)
+def save_peaks(path, peaks_list):
+    try:
+        out_path = path.replace(".txt", "_PEAKS.asc")
+    except:
+        try:
+            out_path = path.replace(".dat", "_PEAKS.asc")
+        except:
+            spc_out = (spc_path + "-PEAKS.asc")
+            
+    with open(out_path, "w") as out:
+        for peak in peaks_list:
+            out.write(str(peak) + "\n")
+    print()
+    print("INFO: Peaks saved to: " + out_path)
+#---------------------------------------------------------------
+
+    
+# Blank a given spectrum ---------------------------------------
+
+def blank_spectrum(SPC_file, peaks_file):
+    Frequency = np.loadtxt(SPC_file, delimiter="\t", usecols=0)
+    Spec = np.loadtxt(SPC_file, delimiter="\t", usecols=1)
+
+
+    blank_peaks = []
+    final_peaks = []
+
+    # Calculating the step
+    step = calculate_step(Frequency)
+
+    # Setting up the blanking width
+    w = float(0.25)
+    print()
+    print("INFO: Blanking width is set to " + str(w*2*1000) + " KHz\n")
+    w_opt = False
+    while w_opt !="y" or w_opt != "Y" or w_opt != "n" or w_opt != "N":
+        w_opt = str(input("Change blanking width? (y/n)... "))
+        if w_opt == "y" or w_opt == "Y":
+            w = float(input("Set new blanking width in KHz... "))/2000
+            print()
+            print("INFO: Blanking width set to " + str(w*2*1000) + " KHz\n")
+            break
+        if w_opt == "n" or w_opt == "N":
+            break
+        
+    # Read peaks file and create the range
+    peaks = []
+    try:
+        with open(peaks_file, 'r') as l:
+            lines = l.readlines()
+        for i in lines:
+            peaks.append(float(i.replace("\n","0")))
+        
+    except TypeError:  #In this case, the main routine is passing a list, not a peak file
+        lines = peaks_file
+        for i in lines:
+            peaks.append(i)    
+    
+    for peak in peaks:
+        r = np.arange(peak-w, peak+w, step)
+        blank_peaks.append(r)
+        
+    ############################# ESTO ES HORRIBLE #############################
+    blank_peaks_np = np.array(blank_peaks)
+    blank_peaks_np.flatten()
+    for i in blank_peaks_np:
+        for j in list(i):
+            final_peaks.append(round(j,1))
+    ############################# ESTO ES HORRIBLE #############################
+
+    blanked_spectrum_x = []
+    blanked_spectrum_y = []
+
+    L = len(Frequency)
+    n = 0
+
+    while n < L:
+        if round(Frequency[n],1) in final_peaks:
+            blanked_spectrum_x.append(Frequency[n])
+            blanked_spectrum_y.append(0.0000)
+            n = n + 1
+        else:
+            blanked_spectrum_x.append(Frequency[n])
+            blanked_spectrum_y.append(Spec[n])
+            n = n + 1
+     
+    plt.plot(Frequency, Spec, label="Original Spectrum")
+    plt.plot(blanked_spectrum_x, blanked_spectrum_y, label="Blanked Spectrum")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+    
+    return(blanked_spectrum_x,blanked_spectrum_y)
+#---------------------------------------------------------------
+
+# Save a spectrum ----------------------------------------------
+
+def save_spc(spc_x, spc_y, spc_path):
+    print()
+    print("INFO: Saving results...\n")
+    try:
+        spc_out = spc_path.replace(".txt", "_BLANKED.txt")
+    except:
+        try:
+            spc_out = spc_path.replace(".dat", "BLANKED.txt")
+        except:
+            spc_out = (spc_path + "-BLANKED.txt")
+
+    spc = open(spc_out, "w")
+
+    n = 0 # Tool for iterating through lists
+
+    while n < len(spc_x):
+        spc.write(str(spc_x[n]) + "    " + str(spc_y[n]))
+        spc.write(os.linesep)
+        n = n + 1
+
+    spc.close()
+
+    print()
+    print("INFO: Spectrum blanked and results saved to")
+    print(spc_out)
 #---------------------------------------------------------------
 
 
-# Min-max normalization of a spectrum --------
 
-def spectrum_normalization(spectrum):
-    spc_x = np.loadtxt(spectrum, usecols = 0)
-    spc_y = np.loadtxt(spectrum, usecols = 1)
-    normalized_y = []
-    minn = min(spc_y)
-    maxx = max(spc_y)
-    rest = maxx - minn
-    for i in spc_y:
-        y = (i-minn)/(rest)
-        normalized_y.append(y)
-    return(spc_x, normalized_y)
-#---------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -369,7 +498,7 @@ def dyk():
         "In North America, deer are considered the biggest threat to humans among all mammals.",
         "A deer can't drive a bus"
         ]
-    #Printing a random and very interesting fact :")
+    #Printing a random (and very interesting) fact about deers :")
     print()
     print("---------------------------------------------------------------")
     print("Did you know:")
