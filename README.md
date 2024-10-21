@@ -7,7 +7,7 @@ Data Editing and Examination for Rotational Spectroscopy
     Name of the Program: DEERs
     First Beta-Version Release: Feb 19, 2024 
     Actual Program Version : 1.0
-    Actual Program Version Date: 
+    Actual Program Version Date: Oct 21, 2024
     Author: Raúl Aguado Vesperinas
 
 DEERs suite is an compilation of scripts that I have made during my PhD, working with FTMW spectroscopy techniques. It has been designed to facilitate the work with frequency-domain rotational spectra. The full list of functions available are summarized below. Futher information, bug reports or any other consideration about the program can be made by email at raaguado98@gmail.es.
