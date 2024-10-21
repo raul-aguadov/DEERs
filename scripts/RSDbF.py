@@ -19,7 +19,7 @@ import pandas as pd
 from extras.defs import pause
 from extras.defs import peak_finder_script as pk
 try:
-    from extras.cfg import fragments_path
+    from extras.defs import fragments_path
     fragments_log = True
 except:
     fragments_log = False
@@ -101,13 +101,13 @@ sdb_type = int(input("Select the database's type to load | 1.CDMS  2.MADEX | "))
 if sdb_type == 1: 
     print("INFO: CDMS database type selected.\n")
     try:
-        from extras.cfg import cdms_db_path as sdb_path
+        from extras.defs import cdms_db_path as sdb_path
     except:
         sdb_path = load_db()
 elif sdb_type == 2:
     print("INFO: MADEX database type selected.\n")
     try:
-        from extras.cfg import madex_db_path as sdb_path
+        from extras.defs import madex_db_path as sdb_path
     except:
         sdb_path = load_db()
 
